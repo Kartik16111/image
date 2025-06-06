@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Size Checker & Resizer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6; /* Light gray background */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 25px;
+            border: 2px dashed #bdc3c7;
+            padding: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-input-wrapper:hover {
+            background-color: #ecf0f1;
+        }
+
+        input[type="file"] {
+            display: none; /* Hide the default file input */
+        }
+
+        .file-input-wrapper label {
+            display: block;
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #555;
+        }
+
+        .file-info p {
+            font-size: 1.1em;
+            margin: 10px 0;
+            color: #34495e;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 8px;
+            background: #dcdcdc;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2ecc71; /* Green thumb */
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2ecc71;
+            cursor: pointer;
+        }
+
+        .download-button {
+            background-color: #2ecc71; /* Green */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 20px;
+            text-decoration: none; /* For the anchor tag */
+            display: inline-block;
+        }
+
+        .download-button:hover {
+            background-color: #27ae60; /* Darker green */
+            transform: translateY(-2px);
+        }
+
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+
+        #outputCanvas {
+            display: none; /* Hidden - used for image processing */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Image File Size Checker & Resizer</h1>
+
+        <div class="file-input-wrapper">
+            <input type="file" id="imageInput" accept="image/*">
+            <label for="imageInput">Drag & Drop an image here, or click to select</label>
+        </div>
+
+        <div class="file-info" style="display: none;">
+            <p>File Name: <span id="fileName"></span></p>
+            <p>Original Size: <span id="originalSize"></span></p>
+            <p>Optimized Size: <span id="optimizedSize"></span></p>
+        </div>
+
+        <img id="previewImage" class="preview-image" alt="Image Preview">
+
+        <div class="controls" style="display: none;">
+            <div class="control-group">
+                <label for="qualityRange">Quality: <span id="qualityValue">80</span>%</label>
+                <input type="range" id="qualityRange" min="10" max="100" value="80">
+            </div>
+
+            <div class="control-group">
+                <label for="widthRange">Width: <span id="widthValue">100</span>%</label>
+                <input type="range" id="widthRange" min="10" max="100" value="100">
+            </div>
+
+            <a href="#" id="downloadButton" class="download-button" download="optimized_image.jpg" style="display: none;">Download Optimized Image</a>
+        </div>
+
+        <p id="errorMessage" class="error-message"></p>
+    </div>
+
+    <canvas id="outputCanvas"></canvas> <script>
+        const imageInput = document.getElementById('imageInput');
+        const fileNameSpan = document.getElementById('fileName');
+        const originalSizeSpan = document.getElementById('originalSize');
+        const optimizedSizeSpan = document.getElementById('optimizedSize');
+        const previewImage = document.getElementById('previewImage');
+        const fileInfoDiv = document.querySelector('.file-info');
+        const controlsDiv = document.querySelector('.controls');
+        const qualityRange = document.getElementById('qualityRange');
+        const qualityValueSpan = document.getElementById('qualityValue');
+        const widthRange = document.getElementById('widthRange');
+        const widthValueSpan = document.getElementById('widthValue');
+        const downloadButton = document.getElementById('downloadButton');
+        const errorMessage = document.getElementById('errorMessage');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const ctx = outputCanvas.getContext('2d');
+
+        let originalImageFile = null;
+        let img = new Image();
+
+        // Function to format bytes to KB/MB
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Function to display error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Function to hide error message
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Main function to process and display image
+        function processImage() {
+            hideError();
+            if (!originalImageFile) {
+                showError("No image selected.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                img.onload = function() {
+                    previewImage.src = img.src;
+                    previewImage.style.display = 'block';
+                    
+                    // Display original file info
+                    fileNameSpan.textContent = originalImageFile.name;
+                    originalSizeSpan.textContent = formatBytes(originalImageFile.size);
+                    fileInfoDiv.style.display = 'block';
+                    controlsDiv.style.display = 'block';
+
+                    // Reset range sliders to default values for new image
+                    qualityRange.value = 80;
+                    qualityValueSpan.textContent = 80;
+                    widthRange.value = 100;
+                    widthValueSpan.textContent = 100;
+
+                    // Trigger initial optimization
+                    optimizeImage();
+                };
+                img.onerror = function() {
+                    showError("Could not load image. Please select a valid image file.");
+                    resetUI();
+                };
+            };
+            reader.readAsDataURL(originalImageFile);
+        }
+
+        // Function to optimize image based on quality and width
+        function optimizeImage() {
+            if (!img.src) {
+                downloadButton.style.display = 'none';
+                optimizedSizeSpan.textContent = 'N/A';
+                return;
+            }
+
+            const quality = parseFloat(qualityRange.value / 100);
+            const widthPercentage = parseFloat(widthRange.value / 100);
+
+            let newWidth = img.width * widthPercentage;
+            let newHeight = img.height * widthPercentage;
+
+            // Ensure dimensions are at least 1 pixel
+            if (newWidth < 1) newWidth = 1;
+            if (newHeight < 1) newHeight = 1;
+
+
+            outputCanvas.width = newWidth;
+            outputCanvas.height = newHeight;
+
+            ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height); // Clear previous draw
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+            // Get image data as Blob
+            outputCanvas.toBlob((blob) => {
+                if (blob) {
+                    optimizedSizeSpan.textContent = formatBytes(blob.size);
+                    downloadButton.href = URL.createObjectURL(blob);
+                    downloadButton.style.display = 'inline-block';
+                } else {
+                    optimizedSizeSpan.textContent = 'Error';
+                    downloadButton.style.display = 'none';
+                    showError("Could not optimize image. Check file type.");
+                }
+            }, 'image/jpeg', quality); // Convert to JPEG with specified quality
+        }
+
+        // Reset UI elements
+        function resetUI() {
+            fileInfoDiv.style.display = 'none';
+            controlsDiv.style.display = 'none';
+            previewImage.style.display = 'none';
+            downloadButton.style.display = 'none';
+            originalImageFile = null;
+            img = new Image(); // Reset image object
+        }
+
+        // Event Listeners
+        imageInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                originalImageFile = files[0];
+                processImage();
+            } else {
+                resetUI();
+            }
+        });
+
+        // Drag and drop functionality
+        const fileInputWrapper = document.querySelector('.file-input-wrapper');
+        fileInputWrapper.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Prevent default to allow drop
+            fileInputWrapper.style.backgroundColor = '#e0e0e0';
+        });
+
+        fileInputWrapper.addEventListener('dragleave', () => {
+            fileInputWrapper.style.backgroundColor = '#ffffff';
+        });
+
+        fileInputWrapper.addEventListener('drop', (e) => {
+            e.preventDefault(); // Prevent default behavior (prevent file from opening)
+            fileInputWrapper.style.backgroundColor = '#ffffff';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                originalImageFile = files[0];
+                imageInput.files = files; // Assign files to input element for consistency
+                processImage();
+            } else {
+                resetUI();
+            }
+        });
+
+
+        qualityRange.addEventListener('input', () => {
+            qualityValueSpan.textContent = qualityRange.value;
+            optimizeImage();
+        });
+
+        widthRange.addEventListener('input', () => {
+            widthValueSpan.textContent = widthRange.value;
+            optimizeImage();
+        });
+
+        // Initial setup
+        resetUI(); // Hide elements until an image is loaded
+    </script>
+
+</body>
+</html>
