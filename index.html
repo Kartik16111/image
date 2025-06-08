@@ -3,174 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Size Checker & Resizer</title>
+    <title>File Size Checker & Optimizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* CSS Variables for easy theme management */
+        :root {
+            --primary-color: #2ecc71; /* Green */
+            --primary-dark: #27ae60;
+            --secondary-color: #3498db; /* Blue */
+            --background-light: #ecf0f1; /* Very light gray */
+            --text-dark: #2c3e50;
+            --text-medium: #555;
+            --border-color: #bdc3c7;
+            --card-bg: #ffffff;
+            --shadow-light: rgba(0, 0, 0, 0.08);
+            --shadow-medium: rgba(0, 0, 0, 0.15);
+        }
+
+        /* Basic body and container styling */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f4f7f6; /* Light gray background */
-            color: #333;
+            background-color: var(--background-light);
+            color: var(--text-dark);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            box-sizing: border-box; /* Include padding in element's total width and height */
+            box-sizing: border-box;
+            line-height: 1.6;
         }
 
         .container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-bg);
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--shadow-medium);
             text-align: center;
-            max-width: 600px;
+            max-width: 650px;
             width: 100%;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px var(--shadow-medium);
         }
 
         h1 {
-            color: #2c3e50;
-            margin-bottom: 25px;
-            font-size: 1.8em;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
+        /* File input area styling */
         .file-input-wrapper {
-            margin-bottom: 25px;
-            border: 2px dashed #bdc3c7;
-            padding: 30px;
-            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 3px dashed var(--border-color);
+            padding: 40px 20px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            position: relative;
         }
 
         .file-input-wrapper:hover {
-            background-color: #ecf0f1;
+            background-color: #e6e9eb;
+            border-color: var(--primary-color);
         }
 
         input[type="file"] {
-            display: none; /* Hide the default file input */
+            display: none; /* Hides the default browser file input */
         }
 
         .file-input-wrapper label {
-            display: block;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             cursor: pointer;
-            font-size: 1.1em;
-            color: #555;
+            font-size: 1.2em;
+            color: var(--text-medium);
+            font-weight: 400;
+        }
+
+        .file-input-wrapper label::before {
+            content: '+'; /* Stylized plus icon */
+            font-size: 4em;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            line-height: 1;
+            transition: transform 0.3s ease;
+        }
+
+        .file-input-wrapper:hover label::before {
+            transform: rotate(90deg); /* Animation on hover */
+        }
+
+        /* File info display styling */
+        .file-info {
+            background-color: var(--background-light);
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-top: 25px;
+            box-shadow: 0 2px 10px var(--shadow-light);
+            text-align: left;
+            transition: all 0.3s ease-in-out;
+            transform: translateY(10px);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .file-info.active {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
         }
 
         .file-info p {
-            font-size: 1.1em;
-            margin: 10px 0;
-            color: #34495e;
-            font-weight: bold;
+            font-size: 1em;
+            margin: 8px 0;
+            color: var(--text-dark);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
+        .file-info p strong {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .file-info p.pdf-info {
+            color: var(--secondary-color); /* Different color for PDF specific info */
+        }
+
+        /* Image preview styling */
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            max-height: 250px;
+            object-fit: contain;
+            margin-top: 30px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px var(--shadow-light);
+            display: none; /* Hidden by default, activated by JS */
+            transition: all 0.3s ease-in-out;
+            transform: scale(0.95);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .preview-image.active {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Optimization controls styling */
         .controls {
-            margin-top: 20px;
+            margin-top: 30px;
             border-top: 1px solid #eee;
-            padding-top: 20px;
+            padding-top: 30px;
+            transition: all 0.3s ease-in-out;
+            transform: translateY(10px);
+            opacity: 0;
+            visibility: hidden;
+            display: none; /* Ensures it's hidden and doesn't take up space */
+        }
+
+        .controls.active {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+            display: block; /* Makes it visible and takes up space */
         }
 
         .control-group {
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             text-align: left;
         }
 
         .control-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #34495e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 1em;
         }
 
-        .control-group input[type="range"] {
+        /* Range slider styling */
+        input[type="range"] {
             width: 100%;
             -webkit-appearance: none;
-            height: 8px;
-            background: #dcdcdc;
+            height: 10px;
+            background: var(--background-light);
             border-radius: 5px;
             outline: none;
-            opacity: 0.7;
+            opacity: 0.8;
             transition: opacity 0.2s;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .control-group input[type="range"]::-webkit-slider-thumb {
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: #2ecc71; /* Green thumb */
-            cursor: pointer;
+            background: var(--primary-color);
+            cursor: grab;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background 0.3s ease, transform 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.1);
         }
 
-        .control-group input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: #2ecc71;
-            cursor: pointer;
+            background: var(--primary-color);
+            cursor: grab;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background 0.3s ease, transform 0.1s ease;
+        }
+        input[type="range"]::-moz-range-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.1);
         }
 
+        /* Download button styling */
         .download-button {
-            background-color: #2ecc71; /* Green */
+            background-color: var(--primary-color);
             color: white;
-            padding: 12px 25px;
+            padding: 14px 30px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 1.1em;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            margin-top: 20px;
-            text-decoration: none; /* For the anchor tag */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            margin-top: 25px;
+            text-decoration: none;
             display: inline-block;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+        }
+
+        .download-button.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            animation: bounceIn 0.6s forwards;
         }
 
         .download-button:hover {
-            background-color: #27ae60; /* Darker green */
-            transform: translateY(-2px);
+            background-color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
         }
 
-        .preview-image {
-            max-width: 100%;
-            height: auto;
-            margin-top: 20px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            display: none; /* Hidden by default */
-        }
-
+        /* Error message styling */
         .error-message {
             color: #e74c3c;
-            margin-top: 15px;
-            font-weight: bold;
+            margin-top: 20px;
+            font-weight: 600;
+            display: none; /* Hidden by default, activated by JS */
+            font-size: 0.95em;
+            animation: fadeIn 0.4s forwards;
+        }
+
+        /* Hidden canvas for image processing */
+        #outputCanvas {
             display: none;
         }
 
-        #outputCanvas {
-            display: none; /* Hidden - used for image processing */
+        /* Keyframe animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+                margin: 10px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            .file-input-wrapper {
+                padding: 30px 15px;
+            }
+            .file-input-wrapper label {
+                font-size: 1em;
+            }
+            .file-input-wrapper label::before {
+                font-size: 3em;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Image File Size Checker & Resizer</h1>
+        <h1>File Size Checker & Optimizer</h1>
 
         <div class="file-input-wrapper">
-            <input type="file" id="imageInput" accept="image/*">
-            <label for="imageInput">Drag & Drop an image here, or click to select</label>
+            <input type="file" id="fileInput" accept="image/*, application/pdf">
+            <label for="fileInput">Drag & Drop a file here, or click to select</label>
         </div>
 
-        <div class="file-info" style="display: none;">
-            <p>File Name: <span id="fileName"></span></p>
-            <p>Original Size: <span id="originalSize"></span></p>
-            <p>Optimized Size: <span id="optimizedSize"></span></p>
+        <div class="file-info" id="fileInfoDisplay">
+            <p>File Name: <strong><span id="fileName"></span></strong></p>
+            <p id="originalSizeRow">Original Size: <strong><span id="originalSize"></span></strong></p>
+            <p id="optimizedSizeRow">Optimized Size: <strong><span id="optimizedSize"></span></strong></p>
         </div>
 
         <img id="previewImage" class="preview-image" alt="Image Preview">
 
-        <div class="controls" style="display: none;">
+        <div class="controls" id="optimizationControls">
             <div class="control-group">
                 <label for="qualityRange">Quality: <span id="qualityValue">80</span>%</label>
                 <input type="range" id="qualityRange" min="10" max="100" value="80">
@@ -181,20 +355,23 @@
                 <input type="range" id="widthRange" min="10" max="100" value="100">
             </div>
 
-            <a href="#" id="downloadButton" class="download-button" download="optimized_image.jpg" style="display: none;">Download Optimized Image</a>
+            <a href="#" id="downloadButton" class="download-button" download="optimized_file.jpg">Download Optimized Image</a>
         </div>
 
         <p id="errorMessage" class="error-message"></p>
     </div>
 
-    <canvas id="outputCanvas"></canvas> <script>
-        const imageInput = document.getElementById('imageInput');
+    <canvas id="outputCanvas"></canvas>
+
+    <script>
+        // Get references to all necessary DOM elements
+        const fileInput = document.getElementById('fileInput');
         const fileNameSpan = document.getElementById('fileName');
         const originalSizeSpan = document.getElementById('originalSize');
         const optimizedSizeSpan = document.getElementById('optimizedSize');
         const previewImage = document.getElementById('previewImage');
-        const fileInfoDiv = document.querySelector('.file-info');
-        const controlsDiv = document.querySelector('.controls');
+        const fileInfoDiv = document.getElementById('fileInfoDisplay');
+        const optimizationControls = document.getElementById('optimizationControls');
         const qualityRange = document.getElementById('qualityRange');
         const qualityValueSpan = document.getElementById('qualityValue');
         const widthRange = document.getElementById('widthRange');
@@ -203,11 +380,13 @@
         const errorMessage = document.getElementById('errorMessage');
         const outputCanvas = document.getElementById('outputCanvas');
         const ctx = outputCanvas.getContext('2d');
+        const originalSizeRow = document.getElementById('originalSizeRow');
+        const optimizedSizeRow = document.getElementById('optimizedSizeRow');
 
-        let originalImageFile = null;
-        let img = new Image();
+        let currentFile = null; // Stores the currently selected file (image or PDF)
+        let imageToOptimize = new Image(); // Stores the image object for optimization
 
-        // Function to format bytes to KB/MB
+        // Helper function to format bytes into KB/MB
         function formatBytes(bytes, decimals = 2) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -217,58 +396,107 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
 
-        // Function to display error message
+        // Function to display an error message
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
+            errorMessage.classList.add('active'); // Apply fade-in animation
         }
 
-        // Function to hide error message
+        // Function to hide the error message
         function hideError() {
+            errorMessage.textContent = '';
             errorMessage.style.display = 'none';
+            errorMessage.classList.remove('active');
         }
 
-        // Main function to process and display image
-        function processImage() {
+        // Resets the UI to its initial hidden state
+        function resetUI() {
+            // Remove 'active' classes and set display to none to ensure elements are hidden
+            fileInfoDiv.classList.remove('active');
+            optimizationControls.classList.remove('active');
+            optimizationControls.style.display = 'none'; // Ensure hidden after animation
+            previewImage.classList.remove('active');
+            previewImage.style.display = 'none';
+            downloadButton.classList.remove('active');
+            downloadButton.style.display = 'none';
+            
+            originalSizeRow.style.display = 'none'; // Hide original size row
+            optimizedSizeRow.style.display = 'none'; // Hide optimized size row
+
+            currentFile = null;
+            imageToOptimize = new Image(); // Reset image object
             hideError();
-            if (!originalImageFile) {
-                showError("No image selected.");
+        }
+
+        // Main function to process the selected file (image or PDF)
+        function processFile() {
+            hideError(); // Clear any previous errors
+
+            if (!currentFile) {
+                resetUI(); // If no file, reset UI
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                img.src = e.target.result;
-                img.onload = function() {
-                    previewImage.src = img.src;
-                    previewImage.style.display = 'block';
-                    
-                    // Display original file info
-                    fileNameSpan.textContent = originalImageFile.name;
-                    originalSizeSpan.textContent = formatBytes(originalImageFile.size);
-                    fileInfoDiv.style.display = 'block';
-                    controlsDiv.style.display = 'block';
+            // Display common file info
+            fileNameSpan.textContent = currentFile.name;
+            originalSizeSpan.textContent = formatBytes(currentFile.size);
+            originalSizeRow.style.display = 'flex'; // Show original size for all files
+            fileInfoDiv.classList.add('active'); // Animate file info display
 
-                    // Reset range sliders to default values for new image
-                    qualityRange.value = 80;
-                    qualityValueSpan.textContent = 80;
-                    widthRange.value = 100;
-                    widthValueSpan.textContent = 100;
+            if (currentFile.type.startsWith('image/')) {
+                // --- Handle Image File ---
+                optimizedSizeRow.style.display = 'flex'; // Show optimized size row for images
+                optimizationControls.classList.add('active'); // Show image controls
+                optimizationControls.style.display = 'block'; // Ensure controls are block for animation
 
-                    // Trigger initial optimization
-                    optimizeImage();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageToOptimize.src = e.target.result;
+                    imageToOptimize.onload = function() {
+                        previewImage.src = imageToOptimize.src;
+                        previewImage.style.display = 'block'; // Make visible before adding 'active'
+                        previewImage.classList.add('active'); // Animate image preview in
+                        
+                        // Reset sliders to default for new image
+                        qualityRange.value = 80;
+                        qualityValueSpan.textContent = 80;
+                        widthRange.value = 100;
+                        widthValueSpan.textContent = 100;
+
+                        optimizeImage(); // Trigger initial optimization
+                    };
+                    imageToOptimize.onerror = function() {
+                        showError("Could not load image. Please select a valid image file.");
+                        resetUI();
+                    };
                 };
-                img.onerror = function() {
-                    showError("Could not load image. Please select a valid image file.");
-                    resetUI();
-                };
-            };
-            reader.readAsDataURL(originalImageFile);
+                reader.readAsDataURL(currentFile); // Read image as data URL
+            } else if (currentFile.type === 'application/pdf') {
+                // --- Handle PDF File ---
+                // Hide image-specific elements
+                previewImage.classList.remove('active');
+                previewImage.style.display = 'none';
+                optimizationControls.classList.remove('active');
+                optimizationControls.style.display = 'none'; // Ensure hidden
+                downloadButton.classList.remove('active');
+                downloadButton.style.display = 'none';
+                optimizedSizeRow.style.display = 'none'; // No optimized size for PDF
+
+                showError("PDFs can only be checked for size, not optimized with this tool.");
+
+            } else {
+                // --- Handle Unsupported File Types ---
+                showError("Unsupported file type. Please select an image or PDF.");
+                resetUI(); // Reset UI for invalid file types
+            }
         }
 
-        // Function to optimize image based on quality and width
+        // Function to optimize the image (called for image files only)
         function optimizeImage() {
-            if (!img.src) {
+            if (!imageToOptimize.src || !currentFile || !currentFile.type.startsWith('image/')) {
+                // Ensure optimization only runs for valid images
+                downloadButton.classList.remove('active');
                 downloadButton.style.display = 'none';
                 optimizedSizeSpan.textContent = 'N/A';
                 return;
@@ -277,80 +505,84 @@
             const quality = parseFloat(qualityRange.value / 100);
             const widthPercentage = parseFloat(widthRange.value / 100);
 
-            let newWidth = img.width * widthPercentage;
-            let newHeight = img.height * widthPercentage;
+            let newWidth = imageToOptimize.width * widthPercentage;
+            let newHeight = imageToOptimize.height * widthPercentage;
 
-            // Ensure dimensions are at least 1 pixel
+            // Ensure dimensions are at least 1 pixel to prevent errors
             if (newWidth < 1) newWidth = 1;
             if (newHeight < 1) newHeight = 1;
-
 
             outputCanvas.width = newWidth;
             outputCanvas.height = newHeight;
 
-            ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height); // Clear previous draw
-            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+            ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height); // Clear canvas
+            ctx.drawImage(imageToOptimize, 0, 0, newWidth, newHeight); // Draw image to canvas
 
-            // Get image data as Blob
+            // Get image data as Blob (file-like object)
             outputCanvas.toBlob((blob) => {
                 if (blob) {
                     optimizedSizeSpan.textContent = formatBytes(blob.size);
-                    downloadButton.href = URL.createObjectURL(blob);
-                    downloadButton.style.display = 'inline-block';
+                    downloadButton.href = URL.createObjectURL(blob); // Create downloadable URL
+                    downloadButton.style.display = 'inline-block'; // Make visible
+                    downloadButton.classList.add('active'); // Animate download button
+                    
+                    // Set download filename
+                    const originalFileNameParts = currentFile.name.split('.');
+                    const name = originalFileNameParts[0];
+                    const extension = originalFileNameParts.length > 1 ? '.' + originalFileNameParts.pop() : '.jpg'; 
+                    downloadButton.download = `${name}_optimized${extension}`;
+
                 } else {
                     optimizedSizeSpan.textContent = 'Error';
+                    downloadButton.classList.remove('active');
                     downloadButton.style.display = 'none';
-                    showError("Could not optimize image. Check file type.");
+                    showError("Could not optimize image. Ensure valid image type (e.g., JPEG, PNG).");
                 }
             }, 'image/jpeg', quality); // Convert to JPEG with specified quality
         }
 
-        // Reset UI elements
-        function resetUI() {
-            fileInfoDiv.style.display = 'none';
-            controlsDiv.style.display = 'none';
-            previewImage.style.display = 'none';
-            downloadButton.style.display = 'none';
-            originalImageFile = null;
-            img = new Image(); // Reset image object
-        }
+        // --- Event Listeners ---
 
-        // Event Listeners
-        imageInput.addEventListener('change', (e) => {
+        // Handle file input change
+        fileInput.addEventListener('change', (e) => {
             const files = e.target.files;
             if (files.length > 0) {
-                originalImageFile = files[0];
-                processImage();
+                currentFile = files[0];
+                processFile();
             } else {
-                resetUI();
+                resetUI(); // If no file selected, reset UI
             }
         });
 
         // Drag and drop functionality
         const fileInputWrapper = document.querySelector('.file-input-wrapper');
         fileInputWrapper.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Prevent default to allow drop
-            fileInputWrapper.style.backgroundColor = '#e0e0e0';
+            e.preventDefault(); // Prevent default browser behavior (e.g., opening file)
+            fileInputWrapper.style.backgroundColor = '#e6e9eb'; /* Highlight on drag over */
+            fileInputWrapper.style.borderColor = 'var(--primary-color)';
         });
 
         fileInputWrapper.addEventListener('dragleave', () => {
-            fileInputWrapper.style.backgroundColor = '#ffffff';
+            fileInputWrapper.style.backgroundColor = 'var(--card-bg)'; /* Revert on drag leave */
+            fileInputWrapper.style.borderColor = 'var(--border-color)';
         });
 
         fileInputWrapper.addEventListener('drop', (e) => {
-            e.preventDefault(); // Prevent default behavior (prevent file from opening)
-            fileInputWrapper.style.backgroundColor = '#ffffff';
+            e.preventDefault();
+            fileInputWrapper.style.backgroundColor = 'var(--card-bg)';
+            fileInputWrapper.style.borderColor = 'var(--border-color)';
+
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                originalImageFile = files[0];
-                imageInput.files = files; // Assign files to input element for consistency
-                processImage();
+                currentFile = files[0];
+                fileInput.files = files; // Sync drag-dropped file with input element
+                processFile();
             } else {
                 resetUI();
             }
         });
 
-
+        // Listen for changes on quality and width sliders
         qualityRange.addEventListener('input', () => {
             qualityValueSpan.textContent = qualityRange.value;
             optimizeImage();
@@ -361,8 +593,9 @@
             optimizeImage();
         });
 
-        // Initial setup
-        resetUI(); // Hide elements until an image is loaded
+        // --- Initial setup when the page loads ---
+        // Ensure the UI is clean and hidden until a file is selected
+        document.addEventListener('DOMContentLoaded', resetUI);
     </script>
 
 </body>
